@@ -11,11 +11,9 @@ class myApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         home: Scaffold(
             backgroundColor: Color(0xFF5B8BDF),
-            appBar: AppBar(
-              backgroundColor: Color(0xFF5B8BDF),
-            ),
+            appBar: null,
             body: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 Container(
                     padding: EdgeInsets.symmetric(
@@ -38,9 +36,6 @@ class myApp extends StatelessWidget {
                       height: 20,
                     ),
                     ButtonMain(text: 'BUKA KAMUS BISINDO'),
-                    SizedBox(
-                      height: 50,
-                    ),
                   ],
                 )
               ],
