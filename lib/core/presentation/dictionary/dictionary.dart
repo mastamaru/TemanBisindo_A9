@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:temanbisindoa9/core/controllers/gestur_controllers.dart';
+
+import '../../widget/gesturCard.dart';
 
 class CustomDropdown extends StatefulWidget {
   final List<String> items;
@@ -89,6 +93,8 @@ class _DictionaryState extends State<Dictionary> {
     'Kata',
   ];
 
+  final GesturController _gesturController = Get.put(GesturController());
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,6 +143,25 @@ class _DictionaryState extends State<Dictionary> {
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: Colors.white),
                       color: Colors.white),
+                  child: Obx(() {
+                    if (_gesturController.isLoading.value) {
+                      return Center(child: CircularProgressIndicator());
+                    } else {
+                      return GridView.builder(
+                        padding: EdgeInsets.all(8),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
+                        itemCount: _gesturController.gesturList.length,
+                        itemBuilder: (context, index) {
+                          return GesturCard(
+                              gestur: _gesturController.gesturList[index]);
+                        },
+                      );
+                    }
+                  }),
                 ),
               ],
             ),

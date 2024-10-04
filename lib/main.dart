@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:temanbisindoa9/utils/routes/routes.dart';
 
+import 'core/services/video_player_manager.dart';
+
 void main() {
-  runApp(myApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => VideoPlayerManager(),
+      child: myApp(),
+    ),
+  );
 }
 
 class myApp extends StatelessWidget {
