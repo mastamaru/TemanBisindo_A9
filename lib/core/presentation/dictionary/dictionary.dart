@@ -87,13 +87,14 @@ class Dictionary extends StatefulWidget {
 
 class _DictionaryState extends State<Dictionary> {
   final List<String> _dropdownItems = [
-    'Pilihan: ',
+    'Semua',
     'Huruf',
     'Angka',
     'Kata',
   ];
 
   final GesturController _gesturController = Get.put(GesturController());
+  String selectedItem = 'Semua'; // saving selected item
 
   @override
   Widget build(BuildContext context) {
@@ -130,9 +131,13 @@ class _DictionaryState extends State<Dictionary> {
                 SizedBox(height: 35),
                 CustomDropdown(
                   items: _dropdownItems,
-                  defaultValue: 'Pilihan: ',
+                  defaultValue: selectedItem,
                   onChanged: (value) {
-                    print('Selected: $value');
+                    setState(() {
+                      selectedItem = value; // Update status dropdown
+                    });
+                    // Panggil fungsi filter di controller
+                    _gesturController.filterGestur(value);
                   },
                 ),
                 SizedBox(height: 35),
@@ -154,10 +159,11 @@ class _DictionaryState extends State<Dictionary> {
                           crossAxisSpacing: 8,
                           mainAxisSpacing: 8,
                         ),
-                        itemCount: _gesturController.gesturList.length,
+                        itemCount: _gesturController.filteredGesturList.length,
                         itemBuilder: (context, index) {
                           return GesturCard(
-                              gestur: _gesturController.gesturList[index]);
+                            gestur: _gesturController.filteredGesturList[index],
+                          );
                         },
                       );
                     }
@@ -168,6 +174,7 @@ class _DictionaryState extends State<Dictionary> {
             TextButton(
                 onPressed: () {
                   Navigator.pop(context);
+                  selectedItem = 'Semua';
                 },
                 child: Text(
                   "Kembali",

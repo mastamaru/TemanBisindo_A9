@@ -30,7 +30,21 @@ class _GesturCardState extends State<GesturCard> {
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(GesturCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Jika gestur berubah, inisialisasi ulang video
+    if (oldWidget.gestur != widget.gestur) {
+      initializeVideo();
+    }
+  }
+
   Future<void> initializeVideo() async {
+    // Hapus controller yang lama jika ada
+    if (_controller != null) {
+      await _controller!.dispose();
+    }
+
     try {
       final fileInfo =
           await DefaultCacheManager().getFileFromCache(widget.gestur.linkVideo);
@@ -40,6 +54,7 @@ class _GesturCardState extends State<GesturCard> {
       _controller = VideoPlayerController.file(file);
       await _controller!.initialize();
       _controller!.setLooping(true);
+      _controller!.setVolume(0);
 
       setState(() {
         _isInitialized = true;
