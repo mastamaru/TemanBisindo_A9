@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../widget/cameraScreen.dart';
+
 class Translate extends StatelessWidget {
   const Translate({super.key});
 
@@ -29,11 +31,15 @@ class Translate extends StatelessWidget {
                 ),
                 Container(
                   height: 404,
-                  width: 384,
+                  width: 384 * 3 / 4,
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: Colors.white),
                       color: Colors.white),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: cameraScreen(),
+                  ),
                 ),
               ],
             ),
