@@ -1,4 +1,6 @@
 // Translate.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../widget/cameraScreen.dart';
@@ -13,29 +15,91 @@ class Translate extends StatefulWidget {
 class _TranslateState extends State<Translate> {
   final GlobalKey<cameraScreenState> _cameraKey =
       GlobalKey<cameraScreenState>();
-  String? _videoPath;
   bool _isRecording = false;
+  String? _videoPath;
+  int _recordingDuration = 0;
+  Timer? _timer;
+  static const int maxDuration = 10; // Durasi maksimum dalam detik
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_recordingDuration < maxDuration) {
+          _recordingDuration++;
+        } else {
+          _stopRecording();
+        }
+      });
+    });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+    _recordingDuration = 0;
+  }
+
+  Future<void> _stopRecording() async {
+    await _cameraKey.currentState?.stopRecording();
+    setState(() {
+      _isRecording = false;
+    });
+    _stopTimer();
+  }
 
   void _toggleRecording() async {
     if (!_isRecording) {
       await _cameraKey.currentState?.startRecording();
       setState(() {
         _isRecording = true;
+        _recordingDuration = 0;
       });
+      _startTimer();
     } else {
-      await _cameraKey.currentState?.stopRecording();
-      setState(() {
-        _isRecording = false;
-      });
+      await _stopRecording();
     }
   }
 
-  void _onVideoRecorded(String path) {
-    setState(() {
-      _videoPath = path;
-    });
-    // Di sini Anda bisa menambahkan logika untuk memproses video
-    print('Video recorded at: $_videoPath');
+  String _formatDuration() {
+    final remaining = maxDuration - _recordingDuration;
+    return '${remaining.toString().padLeft(2, '0')}s';
+  }
+
+  Widget _buildRecordingIndicator() {
+    return Column(
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            // Tombol Record dengan Progress Indicator
+            SizedBox(
+              height: 50,
+              width: 50,
+              child: CircularProgressIndicator(
+                value: _recordingDuration / maxDuration,
+                color: Colors.red,
+                backgroundColor: Colors.white,
+                strokeWidth: 4,
+              ),
+            ),
+            FloatingActionButton(
+              onPressed: _toggleRecording,
+              child: Icon(
+                _isRecording ? Icons.stop : Icons.fiber_manual_record,
+                size: 30,
+              ),
+              backgroundColor: _isRecording ? Colors.red : Colors.white,
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   @override
@@ -73,7 +137,11 @@ class _TranslateState extends State<Translate> {
                     borderRadius: BorderRadius.circular(10),
                     child: cameraScreen(
                       key: _cameraKey,
-                      onVideoRecorded: _onVideoRecorded,
+                      onVideoRecorded: (path) {
+                        setState(() {
+                          _videoPath = path;
+                        });
+                      },
                     ),
                   ),
                 ),
@@ -81,12 +149,7 @@ class _TranslateState extends State<Translate> {
             ),
             Column(
               children: [
-                FloatingActionButton(
-                  onPressed: _toggleRecording,
-                  child: Icon(
-                      _isRecording ? Icons.stop : Icons.fiber_manual_record),
-                  backgroundColor: _isRecording ? Colors.red : Colors.white,
-                ),
+                _buildRecordingIndicator(),
                 const Text(
                   "Hasil Terjemahan:",
                   textAlign: TextAlign.end,
