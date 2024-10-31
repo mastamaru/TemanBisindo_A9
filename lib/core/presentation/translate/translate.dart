@@ -23,9 +23,9 @@ class _TranslateState extends State<Translate> {
   int _recordingDuration = 0;
   Timer? _timer;
   static const int maxDuration = 10;
-  List<Map<String, dynamic>> _landmarks = [];
   bool _isProcessing = false;
   VideoPlayerController? _videoPlayerController;
+  String _predictedLabel = '';
 
   @override
   void initState() {
@@ -127,7 +127,7 @@ class _TranslateState extends State<Translate> {
 
     setState(() {
       _isProcessing = true;
-      _landmarks.clear();
+      _predictedLabel = '';
     });
 
     final videoFile = File(_videoPath!);
@@ -163,19 +163,21 @@ class _TranslateState extends State<Translate> {
 
       if (streamedResponse.statusCode == 200) {
         var response = await http.Response.fromStream(streamedResponse);
-        var jsonResponse = json.decode(response.body);
+        var jsonResponse = json.decode(response.body) as Map<String, dynamic>;
         if (jsonResponse['status'] == 'success') {
           setState(() {
-            _landmarks =
-                List<Map<String, dynamic>>.from(jsonResponse['results']);
+            _predictedLabel = jsonResponse['predicted_label'] ?? '';
           });
           print('Processing completed. Landmarks received.');
+          print('Predicted Label: $_predictedLabel');
         } else {
           print('Error from server: ${jsonResponse['error']}');
         }
       } else {
         print(
             'Server responded with status code: ${streamedResponse.statusCode}');
+        var response = await http.Response.fromStream(streamedResponse);
+        print('Response body: ${response.body}');
       }
     } catch (e) {
       print('Error uploading video: $e');
@@ -186,7 +188,7 @@ class _TranslateState extends State<Translate> {
     }
   }
 
-  Widget _buildLandmarksDisplay() {
+  Widget _buildPredictiondisplay() {
     if (_isProcessing) {
       return const Center(
         child: Column(
@@ -200,71 +202,20 @@ class _TranslateState extends State<Translate> {
       );
     }
 
-    if (_landmarks.isEmpty) {
+    if (_predictedLabel.isEmpty) {
       return const Center(
-        child: Text('No landmarks detected'),
+        child: Text('Model prediction failed'),
       );
     }
 
     return SingleChildScrollView(
       child: Column(
         children: [
-          for (var frame in _landmarks.cast<Map<String, dynamic>>())
-            Card(
-              margin: const EdgeInsets.all(4),
-              child: ExpansionTile(
-                title: Text('Frame ${frame['frame_index'] + 1}'),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (frame['landmarks']['left_hand'] != null)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Left Hand:',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              for (var i = 0;
-                                  i < frame['landmarks']['left_hand'].length;
-                                  i += 3)
-                                Text(
-                                  'Landmark ${i ~/ 3}: (${frame['landmarks']['left_hand'][i].toStringAsFixed(2)}, '
-                                  '${frame['landmarks']['left_hand'][i + 1].toStringAsFixed(2)}, '
-                                  '${frame['landmarks']['left_hand'][i + 2].toStringAsFixed(2)})',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                            ],
-                          ),
-                        const SizedBox(height: 10),
-                        if (frame['landmarks']['right_hand'] != null)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Right Hand:',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              for (var i = 0;
-                                  i < frame['landmarks']['right_hand'].length;
-                                  i += 3)
-                                Text(
-                                  'Landmark ${i ~/ 3}: (${frame['landmarks']['right_hand'][i].toStringAsFixed(2)}, '
-                                  '${frame['landmarks']['right_hand'][i + 1].toStringAsFixed(2)}, '
-                                  '${frame['landmarks']['right_hand'][i + 2].toStringAsFixed(2)})',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                            ],
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          Text(
+            '$_predictedLabel',
+            style: const TextStyle(
+                fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
+          ),
         ],
       ),
     );
@@ -280,6 +231,9 @@ class _TranslateState extends State<Translate> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            SizedBox(
+              height: 15,
+            ),
             Column(
               children: [
                 const Text(
@@ -292,7 +246,7 @@ class _TranslateState extends State<Translate> {
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 25),
+                const SizedBox(height: 15),
                 Container(
                   height: 404,
                   width: 384 * 3 / 4,
@@ -338,9 +292,11 @@ class _TranslateState extends State<Translate> {
                     border: Border.all(color: Colors.white),
                     color: Colors.white,
                   ),
-                  child: _videoPath != null
-                      ? _buildLandmarksDisplay()
-                      : const Center(child: Text('No video processed')),
+                  child: Center(
+                    child: _videoPath != null
+                        ? _buildPredictiondisplay()
+                        : const Center(child: Text('No video processed')),
+                  ),
                 ),
               ],
             ),
