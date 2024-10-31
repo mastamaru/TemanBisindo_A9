@@ -26,6 +26,7 @@ class _TranslateState extends State<Translate> {
   bool _isProcessing = false;
   VideoPlayerController? _videoPlayerController;
   String _predictedLabel = '';
+  double _progress = 1.0;
 
   @override
   void initState() {
@@ -41,46 +42,48 @@ class _TranslateState extends State<Translate> {
     super.dispose();
   }
 
-  void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_recordingDuration < maxDuration) {
-          _recordingDuration++;
-        } else {
-          _stopRecording();
-        }
-      });
-    });
-  }
-
-  void _stopTimer() {
-    _timer?.cancel();
-    _timer = null;
-    _recordingDuration = 0;
-  }
-
-  Future<void> _stopRecording() async {
-    await _cameraKey.currentState?.stopRecording();
-    setState(() {
-      _isRecording = false;
-    });
-    _stopTimer();
-  }
-
   void _toggleRecording() async {
     if (!_isRecording) {
       await _cameraKey.currentState?.startRecording();
       setState(() {
         _isRecording = true;
         _recordingDuration = 0;
+        _progress = 1.0; // Reset progress saat mulai merekam
       });
       _startTimer();
     } else {
       await _stopRecording();
-      if (_videoPath != null) {
-        await processVideo();
-      }
     }
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _recordingDuration++;
+        _progress = 1 - (_recordingDuration / maxDuration);
+        if (_recordingDuration >= maxDuration) {
+          _stopRecording();
+        }
+      });
+    });
+  }
+
+  Future<void> _stopRecording() async {
+    await _cameraKey.currentState?.stopRecording();
+    setState(() {
+      _isRecording = false;
+      _progress = 0.0;
+    });
+    _stopTimer();
+    if (_videoPath != null) {
+      await processVideo();
+    }
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+    _recordingDuration = 0;
   }
 
   String _formatDuration() {
@@ -90,28 +93,42 @@ class _TranslateState extends State<Translate> {
 
   Widget _buildRecordingIndicator() {
     return Column(
+      mainAxisSize: MainAxisSize.min, // Menghindari ekspansi vertikal
       children: [
+        SizedBox(
+          height: 4,
+        ),
         Stack(
           alignment: Alignment.center,
           children: [
-            // Tombol Record dengan Progress Indicator
+            // Circular Progress Indicator dengan ukuran yang lebih kecil
             SizedBox(
-              height: 50,
-              width: 50,
+              width: 60, // Ukuran dikurangi
+              height: 60, // Ukuran dikurangi
               child: CircularProgressIndicator(
-                value: _recordingDuration / maxDuration,
-                color: Colors.red,
-                backgroundColor: Colors.white,
-                strokeWidth: 4,
+                value: _isRecording ? _progress : 0.0,
+                strokeWidth: 4, // Ketebalan garis dikurangi
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                backgroundColor: Colors.white.withOpacity(0.3),
               ),
             ),
-            FloatingActionButton(
-              onPressed: _toggleRecording,
-              child: Icon(
-                _isRecording ? Icons.stop : Icons.fiber_manual_record,
-                size: 30,
+            // Tombol Record dengan Icon yang lebih kecil
+            GestureDetector(
+              onTap: _toggleRecording,
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: _isRecording ? Colors.red : Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.red, width: 2),
+                ),
+                child: Icon(
+                  _isRecording ? Icons.stop : Icons.fiber_manual_record,
+                  color: _isRecording ? Colors.white : Colors.red,
+                  size: 24,
+                ),
               ),
-              backgroundColor: _isRecording ? Colors.red : Colors.white,
             ),
           ],
         ),
