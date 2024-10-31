@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
 class cameraScreen extends StatefulWidget {
@@ -27,7 +26,7 @@ class cameraScreenState extends State<cameraScreen> {
 
   Future<void> _initializeCamera() async {
     final cameras = await availableCameras();
-    final firstCamera = cameras.first;
+    final firstCamera = cameras.last;
 
     _controller = CameraController(
       firstCamera,
@@ -55,10 +54,6 @@ class cameraScreenState extends State<cameraScreen> {
       // Dapatkan direktori temporary untuk menyimpan video
       final Directory tempDir = await getTemporaryDirectory();
       final String tempPath = tempDir.path;
-      final String filePath = path.join(
-        tempPath,
-        'video_${DateTime.now().millisecondsSinceEpoch}.mp4',
-      );
 
       await _controller!.startVideoRecording();
 

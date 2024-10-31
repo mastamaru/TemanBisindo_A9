@@ -1,7 +1,10 @@
-// Translate.dart
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:video_player/video_player.dart';
 
 import '../../widget/cameraScreen.dart';
 
@@ -19,10 +22,21 @@ class _TranslateState extends State<Translate> {
   String? _videoPath;
   int _recordingDuration = 0;
   Timer? _timer;
-  static const int maxDuration = 10; // Durasi maksimum dalam detik
+  static const int maxDuration = 10;
+  List<Map<String, dynamic>> _landmarks = [];
+  bool _isProcessing = false;
+  VideoPlayerController? _videoPlayerController;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
 
   @override
   void dispose() {
+    _videoPlayerController?.dispose();
+    _videoPlayerController = null;
     _timer?.cancel();
     super.dispose();
   }
@@ -63,6 +77,9 @@ class _TranslateState extends State<Translate> {
       _startTimer();
     } else {
       await _stopRecording();
+      if (_videoPath != null) {
+        await processVideo();
+      }
     }
   }
 
@@ -99,6 +116,157 @@ class _TranslateState extends State<Translate> {
           ],
         ),
       ],
+    );
+  }
+
+  Future<void> processVideo() async {
+    if (_videoPath == null) {
+      print('No video path found');
+      return;
+    }
+
+    setState(() {
+      _isProcessing = true;
+      _landmarks.clear();
+    });
+
+    final videoFile = File(_videoPath!);
+    if (!videoFile.existsSync()) {
+      print('Video file not found');
+      setState(() {
+        _isProcessing = false;
+      });
+      return;
+    }
+
+    print('Processing video: ${videoFile.path}');
+    final videoSizeInBytes = await videoFile.length();
+    final videoSizeInMB = videoSizeInBytes / (1024 * 1024);
+    print("Video file size: ${videoSizeInMB.toStringAsFixed(2)} MB");
+
+    // Inisialisasi VideoPlayerController (Opsional, jika Anda ingin memutar video)
+    _videoPlayerController = VideoPlayerController.file(videoFile);
+    await _videoPlayerController!.initialize();
+    await _videoPlayerController!.dispose();
+    _videoPlayerController = null;
+
+    try {
+      // Kirim video ke server
+      final uri = Uri.parse(
+          'https://dc2a-2001-448a-404a-1461-d1d3-4c9c-348d-c8b8.ngrok-free.app/process_video'); // Ganti <SERVER_IP> dengan alamat server Anda
+      var request = http.MultipartRequest('POST', uri);
+      request.files
+          .add(await http.MultipartFile.fromPath('video', videoFile.path));
+
+      print('Uploading video...');
+      var streamedResponse = await request.send();
+
+      if (streamedResponse.statusCode == 200) {
+        var response = await http.Response.fromStream(streamedResponse);
+        var jsonResponse = json.decode(response.body);
+        if (jsonResponse['status'] == 'success') {
+          setState(() {
+            _landmarks =
+                List<Map<String, dynamic>>.from(jsonResponse['results']);
+          });
+          print('Processing completed. Landmarks received.');
+        } else {
+          print('Error from server: ${jsonResponse['error']}');
+        }
+      } else {
+        print(
+            'Server responded with status code: ${streamedResponse.statusCode}');
+      }
+    } catch (e) {
+      print('Error uploading video: $e');
+    } finally {
+      setState(() {
+        _isProcessing = false;
+      });
+    }
+  }
+
+  Widget _buildLandmarksDisplay() {
+    if (_isProcessing) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 10),
+            Text('Processing video...'),
+          ],
+        ),
+      );
+    }
+
+    if (_landmarks.isEmpty) {
+      return const Center(
+        child: Text('No landmarks detected'),
+      );
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          for (var frame in _landmarks.cast<Map<String, dynamic>>())
+            Card(
+              margin: const EdgeInsets.all(4),
+              child: ExpansionTile(
+                title: Text('Frame ${frame['frame_index'] + 1}'),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (frame['landmarks']['left_hand'] != null)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Left Hand:',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              for (var i = 0;
+                                  i < frame['landmarks']['left_hand'].length;
+                                  i += 3)
+                                Text(
+                                  'Landmark ${i ~/ 3}: (${frame['landmarks']['left_hand'][i].toStringAsFixed(2)}, '
+                                  '${frame['landmarks']['left_hand'][i + 1].toStringAsFixed(2)}, '
+                                  '${frame['landmarks']['left_hand'][i + 2].toStringAsFixed(2)})',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                            ],
+                          ),
+                        const SizedBox(height: 10),
+                        if (frame['landmarks']['right_hand'] != null)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Right Hand:',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              for (var i = 0;
+                                  i < frame['landmarks']['right_hand'].length;
+                                  i += 3)
+                                Text(
+                                  'Landmark ${i ~/ 3}: (${frame['landmarks']['right_hand'][i].toStringAsFixed(2)}, '
+                                  '${frame['landmarks']['right_hand'][i + 1].toStringAsFixed(2)}, '
+                                  '${frame['landmarks']['right_hand'][i + 2].toStringAsFixed(2)})',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -162,7 +330,8 @@ class _TranslateState extends State<Translate> {
                 ),
                 const SizedBox(height: 20),
                 Container(
-                  height: 164,
+                  height:
+                      200, // Disesuaikan untuk menampilkan lebih banyak data
                   width: 384,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
@@ -170,13 +339,8 @@ class _TranslateState extends State<Translate> {
                     color: Colors.white,
                   ),
                   child: _videoPath != null
-                      ? Center(
-                          child: Text(
-                            'Video tersimpan di:\n$_videoPath',
-                            textAlign: TextAlign.center,
-                          ),
-                        )
-                      : null,
+                      ? _buildLandmarksDisplay()
+                      : const Center(child: Text('No video processed')),
                 ),
               ],
             ),
