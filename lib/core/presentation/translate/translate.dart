@@ -86,11 +86,6 @@ class _TranslateState extends State<Translate> {
     _recordingDuration = 0;
   }
 
-  String _formatDuration() {
-    final remaining = maxDuration - _recordingDuration;
-    return '${remaining.toString().padLeft(2, '0')}s';
-  }
-
   Widget _buildRecordingIndicator() {
     return Column(
       mainAxisSize: MainAxisSize.min, // Menghindari ekspansi vertikal
