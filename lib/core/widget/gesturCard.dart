@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:provider/provider.dart';
-import 'package:temanbisindoa9/core/models/gestur_models.dart';
-import 'package:temanbisindoa9/core/services/video_player_manager.dart';
+import 'package:temanbisindoa9/core/widget/videoModal.dart';
 import 'package:video_player/video_player.dart';
+
+import '../models/gestur_models.dart';
 
 class GesturCard extends StatefulWidget {
   final GesturModel gestur;
@@ -21,7 +21,21 @@ class _GesturCardState extends State<GesturCard> {
   @override
   void initState() {
     super.initState();
-    initializeVideo();
+    _initializeVideo();
+  }
+
+  // Tambahkan didUpdateWidget untuk menangani perubahan gestur
+  @override
+  void didUpdateWidget(GesturCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.gestur.linkVideo != widget.gestur.linkVideo) {
+      // Dispose controller lama
+      _controller?.dispose();
+      _controller = null;
+      _isInitialized = false;
+      // Inisialisasi video baru
+      _initializeVideo();
+    }
   }
 
   @override
@@ -30,20 +44,8 @@ class _GesturCardState extends State<GesturCard> {
     super.dispose();
   }
 
-  @override
-  void didUpdateWidget(GesturCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Jika gestur berubah, inisialisasi ulang video
-    if (oldWidget.gestur != widget.gestur) {
-      initializeVideo();
-    }
-  }
-
-  Future<void> initializeVideo() async {
-    // Hapus controller yang lama jika ada
-    if (_controller != null) {
-      await _controller!.dispose();
-    }
+  Future<void> _initializeVideo() async {
+    if (_controller != null) return; // Prevent multiple initializations
 
     try {
       final fileInfo =
@@ -51,43 +53,30 @@ class _GesturCardState extends State<GesturCard> {
       final file = fileInfo?.file ??
           await DefaultCacheManager().getSingleFile(widget.gestur.linkVideo);
 
+      if (!mounted) return;
+
       _controller = VideoPlayerController.file(file);
       await _controller!.initialize();
-      _controller!.setLooping(true);
-      _controller!.setVolume(0);
+      await _controller!.setLooping(false);
+      await _controller!.pause();
 
-      setState(() {
-        _isInitialized = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
     } catch (e) {
       print('Error initializing video: $e');
-    }
-  }
-
-  void _togglePlayPause(VideoPlayerManager manager) {
-    if (_controller == null) return;
-
-    if (manager.isCurrentlyPlaying(widget.gestur.id)) {
-      _controller!.pause();
-      _controller!.seekTo(Duration.zero);
-      manager.setCurrentlyPlaying(null);
-    } else {
-      manager.setCurrentlyPlaying(widget.gestur.id);
-      _controller!.play();
+      if (mounted) {
+        setState(() {
+          _isInitialized = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final videoManager = Provider.of<VideoPlayerManager>(context);
-
-    if (_controller != null) {
-      if (!videoManager.isCurrentlyPlaying(widget.gestur.id)) {
-        _controller!.pause();
-        _controller!.seekTo(Duration.zero);
-      }
-    }
-
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
@@ -101,28 +90,50 @@ class _GesturCardState extends State<GesturCard> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             GestureDetector(
-              onTap: () => _togglePlayPause(videoManager),
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => VideoModal(gestur: widget.gestur),
+                );
+              },
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   Container(
-                    color: Colors.black,
                     width: 100,
                     height: 75,
-                    child: _isInitialized
-                        ? AspectRatio(
-                            aspectRatio: _controller!.value.aspectRatio,
-                            child: VideoPlayer(_controller!),
-                          )
-                        : Center(child: CircularProgressIndicator()),
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: _isInitialized
+                          ? AspectRatio(
+                              aspectRatio: _controller!.value.aspectRatio,
+                              child: VideoPlayer(_controller!),
+                            )
+                          : Container(
+                              color: Colors.grey[300],
+                              child: Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            ),
+                    ),
                   ),
-                  if (_isInitialized &&
-                      !videoManager.isCurrentlyPlaying(widget.gestur.id))
-                    Icon(
-                      Icons.play_arrow,
+                  Container(
+                    width: 100,
+                    height: 75,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.play_circle_outline,
                       color: Colors.white,
                       size: 40,
                     ),
+                  ),
                 ],
               ),
             ),

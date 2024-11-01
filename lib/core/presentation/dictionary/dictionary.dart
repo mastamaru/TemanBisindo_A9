@@ -94,7 +94,16 @@ class _DictionaryState extends State<Dictionary> {
   ];
 
   final GesturController _gesturController = Get.put(GesturController());
-  String selectedItem = 'Semua'; // saving selected item
+  // Ubah dari late final String menjadi String biasa
+  String selectedItem = 'Semua'; // Inisialisasi langsung di sini
+
+  @override
+  void initState() {
+    super.initState();
+    // Hapus inisialisasi selectedItem di initState karena sudah diinisialisasi di atas
+    _gesturController
+        .filterGestur(selectedItem); // Tambahkan ini untuk filter awal
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +140,7 @@ class _DictionaryState extends State<Dictionary> {
                 SizedBox(height: 35),
                 CustomDropdown(
                   items: _dropdownItems,
-                  defaultValue: selectedItem,
+                  defaultValue: 'Semua',
                   onChanged: (value) {
                     setState(() {
                       selectedItem = value; // Update status dropdown
@@ -174,7 +183,6 @@ class _DictionaryState extends State<Dictionary> {
             TextButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  selectedItem = 'Semua';
                 },
                 child: Text(
                   "Kembali",

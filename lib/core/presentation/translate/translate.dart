@@ -22,7 +22,7 @@ class _TranslateState extends State<Translate> {
   String? _videoPath;
   int _recordingDuration = 0;
   Timer? _timer;
-  static const int maxDuration = 10;
+  static const int maxDuration = 3;
   bool _isProcessing = false;
   VideoPlayerController? _videoPlayerController;
   String _predictedLabel = '';
@@ -165,7 +165,7 @@ class _TranslateState extends State<Translate> {
     try {
       // Kirim video ke server
       final uri = Uri.parse(
-          'https://dc2a-2001-448a-404a-1461-d1d3-4c9c-348d-c8b8.ngrok-free.app/process_video'); // Ganti <SERVER_IP> dengan alamat server Anda
+          'https://4af5-2405-2c40-3-0-142a-827e-c132-a327.ngrok-free.app/process_video'); // Ganti <SERVER_IP> dengan alamat server Anda
       var request = http.MultipartRequest('POST', uri);
       request.files
           .add(await http.MultipartFile.fromPath('video', videoFile.path));
