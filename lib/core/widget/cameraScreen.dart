@@ -16,6 +16,8 @@ class cameraScreen extends StatefulWidget {
 class cameraScreenState extends State<cameraScreen> {
   CameraController? _controller;
   Future<void>? _initializeControllerFuture;
+  List<CameraDescription> _cameras = [];
+  int _currentCameraIndex = 0;
   bool _isRecording = false;
 
   @override
@@ -24,12 +26,53 @@ class cameraScreenState extends State<cameraScreen> {
     _initializeCamera();
   }
 
+  // Perbarui metode _initializeCamera untuk menggunakan _currentCameraIndex
   Future<void> _initializeCamera() async {
-    final cameras = await availableCameras();
-    final firstCamera = cameras.last;
+    try {
+      _cameras = await availableCameras();
+      if (_cameras.isEmpty) {
+        throw Exception('No cameras available');
+      }
 
+      _controller = CameraController(
+        _cameras[_currentCameraIndex],
+        ResolutionPreset.medium,
+        fps: 30,
+        enableAudio: false,
+      );
+
+      _initializeControllerFuture = _controller!.initialize();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      print('Error initializing camera: $e');
+    }
+  }
+
+// Fungsi untuk membalik kamera
+  Future<void> flipCamera() async {
+    if (_cameras.length < 2) {
+      print('Not enough cameras to flip');
+      return;
+    }
+
+    // Tentukan indeks kamera berikutnya
+    int newCameraIndex = (_currentCameraIndex + 1) % _cameras.length;
+
+    // Hentikan dan dispose controller saat ini
+    if (_controller != null) {
+      await _controller!.dispose();
+    }
+
+    // Perbarui indeks kamera saat ini
+    setState(() {
+      _currentCameraIndex = newCameraIndex;
+    });
+
+    // Inisialisasi ulang controller dengan kamera baru
     _controller = CameraController(
-      firstCamera,
+      _cameras[_currentCameraIndex],
       ResolutionPreset.medium,
       fps: 30,
       enableAudio: false,

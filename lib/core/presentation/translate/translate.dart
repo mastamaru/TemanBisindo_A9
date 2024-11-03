@@ -87,45 +87,65 @@ class _TranslateState extends State<Translate> {
   }
 
   Widget _buildRecordingIndicator() {
-    return Column(
-      mainAxisSize: MainAxisSize.min, // Menghindari ekspansi vertikal
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         SizedBox(
-          height: 4,
+          width: 65,
         ),
-        Stack(
-          alignment: Alignment.center,
+        Column(
+          mainAxisSize: MainAxisSize.min, // Menghindari ekspansi vertikal
           children: [
-            // Circular Progress Indicator dengan ukuran yang lebih kecil
             SizedBox(
-              width: 60, // Ukuran dikurangi
-              height: 60, // Ukuran dikurangi
-              child: CircularProgressIndicator(
-                value: _isRecording ? _progress : 0.0,
-                strokeWidth: 4, // Ketebalan garis dikurangi
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
-                backgroundColor: Colors.white.withOpacity(0.3),
-              ),
+              height: 4,
             ),
-            // Tombol Record dengan Icon yang lebih kecil
-            GestureDetector(
-              onTap: _toggleRecording,
-              child: Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: _isRecording ? Colors.red : Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.red, width: 2),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                // Circular Progress Indicator dengan ukuran yang lebih kecil
+                SizedBox(
+                  width: 60, // Ukuran dikurangi
+                  height: 60, // Ukuran dikurangi
+                  child: CircularProgressIndicator(
+                    value: _isRecording ? _progress : 0.0,
+                    strokeWidth: 4, // Ketebalan garis dikurangi
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                    backgroundColor: Colors.white.withOpacity(0.3),
+                  ),
                 ),
-                child: Icon(
-                  _isRecording ? Icons.stop : Icons.fiber_manual_record,
-                  color: _isRecording ? Colors.white : Colors.red,
-                  size: 24,
+                // Tombol Record dengan Icon yang lebih kecil
+                GestureDetector(
+                  onTap: _toggleRecording,
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: _isRecording ? Colors.red : Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.red, width: 2),
+                    ),
+                    child: Icon(
+                      _isRecording ? Icons.stop : Icons.fiber_manual_record,
+                      color: _isRecording ? Colors.white : Colors.red,
+                      size: 24,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
+        ),
+        SizedBox(width: 20),
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black.withOpacity(0.5),
+          ),
+          child: IconButton(
+            onPressed: _cameraKey.currentState?.flipCamera,
+            icon: Icon(Icons.flip_camera_android_rounded),
+            color: Colors.white,
+          ),
         ),
       ],
     );
@@ -165,7 +185,7 @@ class _TranslateState extends State<Translate> {
     try {
       // Kirim video ke server
       final uri = Uri.parse(
-          'https://4af5-2405-2c40-3-0-142a-827e-c132-a327.ngrok-free.app/process_video'); // Ganti <SERVER_IP> dengan alamat server Anda
+          'https://f332-2001-448a-404f-2af7-6951-bdcd-58e4-6d96.ngrok-free.app/process_video'); // Ganti <SERVER_IP> dengan alamat server Anda
       var request = http.MultipartRequest('POST', uri);
       request.files
           .add(await http.MultipartFile.fromPath('video', videoFile.path));
