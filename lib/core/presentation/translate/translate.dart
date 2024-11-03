@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:temanbisindoa9/core/widget/recording_control.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../widget/cameraScreen.dart';
@@ -84,71 +85,6 @@ class _TranslateState extends State<Translate> {
     _timer?.cancel();
     _timer = null;
     _recordingDuration = 0;
-  }
-
-  Widget _buildRecordingIndicator() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: 65,
-        ),
-        Column(
-          mainAxisSize: MainAxisSize.min, // Menghindari ekspansi vertikal
-          children: [
-            SizedBox(
-              height: 4,
-            ),
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                // Circular Progress Indicator dengan ukuran yang lebih kecil
-                SizedBox(
-                  width: 60, // Ukuran dikurangi
-                  height: 60, // Ukuran dikurangi
-                  child: CircularProgressIndicator(
-                    value: _isRecording ? _progress : 0.0,
-                    strokeWidth: 4, // Ketebalan garis dikurangi
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
-                    backgroundColor: Colors.white.withOpacity(0.3),
-                  ),
-                ),
-                // Tombol Record dengan Icon yang lebih kecil
-                GestureDetector(
-                  onTap: _toggleRecording,
-                  child: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: _isRecording ? Colors.red : Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.red, width: 2),
-                    ),
-                    child: Icon(
-                      _isRecording ? Icons.stop : Icons.fiber_manual_record,
-                      color: _isRecording ? Colors.white : Colors.red,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        SizedBox(width: 20),
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.black.withOpacity(0.5),
-          ),
-          child: IconButton(
-            onPressed: _cameraKey.currentState?.flipCamera,
-            icon: Icon(Icons.flip_camera_android_rounded),
-            color: Colors.white,
-          ),
-        ),
-      ],
-    );
   }
 
   Future<void> processVideo() async {
@@ -303,7 +239,13 @@ class _TranslateState extends State<Translate> {
             ),
             Column(
               children: [
-                _buildRecordingIndicator(),
+                RecordingControl(
+                    isRecording: _isRecording,
+                    progress: _progress,
+                    onToggleRecording: _toggleRecording,
+                    onFlipCamera: () {
+                      _cameraKey.currentState?.flipCamera();
+                    }),
                 const Text(
                   "Hasil Terjemahan:",
                   textAlign: TextAlign.end,
