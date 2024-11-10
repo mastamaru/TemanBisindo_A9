@@ -121,16 +121,32 @@ class _TranslateState extends State<Translate> {
     try {
       // Kirim video ke server
       final uri = Uri.parse(
-          'https://f332-2001-448a-404f-2af7-6951-bdcd-58e4-6d96.ngrok-free.app/process_video'); // Ganti <SERVER_IP> dengan alamat server Anda
+          'https://www.mastamaru.my.id/predict'); // Ganti dengan URL yang benar
       var request = http.MultipartRequest('POST', uri);
       request.files
           .add(await http.MultipartFile.fromPath('video', videoFile.path));
 
       print('Uploading video...');
-      var streamedResponse = await request.send();
 
-      if (streamedResponse.statusCode == 200) {
-        var response = await http.Response.fromStream(streamedResponse);
+      // Gunakan http.Client untuk mengikuti pengalihan
+      var client = http.Client();
+      var streamedResponse = await client.send(request);
+      var response = await http.Response.fromStream(streamedResponse);
+
+      // Periksa apakah ada pengalihan
+      if (response.statusCode == 301 || response.statusCode == 302) {
+        // Dapatkan URL baru dari header "Location"
+        var newUrl = Uri.parse(response.headers['location']!);
+
+        // Kirim ulang permintaan ke URL baru
+        request = http.MultipartRequest('POST', newUrl);
+        request.files
+            .add(await http.MultipartFile.fromPath('video', videoFile.path));
+        streamedResponse = await client.send(request);
+        response = await http.Response.fromStream(streamedResponse);
+      }
+
+      if (response.statusCode == 200) {
         var jsonResponse = json.decode(response.body) as Map<String, dynamic>;
         if (jsonResponse['status'] == 'success') {
           setState(() {
@@ -142,9 +158,7 @@ class _TranslateState extends State<Translate> {
           print('Error from server: ${jsonResponse['error']}');
         }
       } else {
-        print(
-            'Server responded with status code: ${streamedResponse.statusCode}');
-        var response = await http.Response.fromStream(streamedResponse);
+        print('Server responded with status code: ${response.statusCode}');
         print('Response body: ${response.body}');
       }
     } catch (e) {
