@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart'; // Import ini
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:temanbisindoa9/core/widget/videoModal.dart';
@@ -19,26 +20,6 @@ class _GesturCardState extends State<GesturCard> {
   bool _isInitialized = false;
 
   @override
-  void initState() {
-    super.initState();
-    _initializeVideo();
-  }
-
-  // Tambahkan didUpdateWidget untuk menangani perubahan gestur
-  @override
-  void didUpdateWidget(GesturCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.gestur.linkVideo != widget.gestur.linkVideo) {
-      // Dispose controller lama
-      _controller?.dispose();
-      _controller = null;
-      _isInitialized = false;
-      // Inisialisasi video baru
-      _initializeVideo();
-    }
-  }
-
-  @override
   void dispose() {
     _controller?.dispose();
     super.dispose();
@@ -58,7 +39,7 @@ class _GesturCardState extends State<GesturCard> {
       _controller = VideoPlayerController.file(file);
       await _controller!.initialize();
       await _controller!.setLooping(false);
-      await _controller!.pause();
+      await _controller!.pause(); // Tetap pause setelah inisialisasi
 
       if (mounted) {
         setState(() {
@@ -90,7 +71,8 @@ class _GesturCardState extends State<GesturCard> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             GestureDetector(
-              onTap: () {
+              onTap: () async {
+                await _initializeVideo(); // Inisialisasi video saat tap
                 showDialog(
                   context: context,
                   builder: (context) => VideoModal(gestur: widget.gestur),
@@ -108,10 +90,21 @@ class _GesturCardState extends State<GesturCard> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: _isInitialized
-                          ? AspectRatio(
-                              aspectRatio: _controller!.value.aspectRatio,
-                              child: VideoPlayer(_controller!),
+                      child: widget.gestur.linkImage.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: widget
+                                  .gestur.linkImage, // Menggunakan thumbnail
+                              fit: BoxFit.cover,
+                              width: 100,
+                              height: 75,
+                              placeholder: (context, url) => Container(
+                                color: Colors.grey[300],
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) =>
+                                  Icon(Icons.error),
                             )
                           : Container(
                               color: Colors.grey[300],

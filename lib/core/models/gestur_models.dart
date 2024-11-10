@@ -3,6 +3,7 @@ import 'dart:convert';
 class GesturModel {
   final String category;
   final String linkVideo;
+  final String linkImage;
   final String terjemahan;
   final String id;
 
@@ -10,6 +11,7 @@ class GesturModel {
     required this.category,
     required this.linkVideo,
     required this.terjemahan,
+    required this.linkImage,
     required this.id,
   });
 
@@ -17,6 +19,7 @@ class GesturModel {
     return GesturModel(
       category: json['Category'],
       linkVideo: json['Link_Video'],
+      linkImage: json['Link_Thumbnail'],
       terjemahan: json['Terjemahan'],
       id: json['_id'],
     );
@@ -26,6 +29,7 @@ class GesturModel {
     return {
       'Category': category,
       'Link_Video': linkVideo,
+      'Link_Thumbnail': linkImage,
       'Terjemahan': terjemahan,
       '_id': id,
     };
